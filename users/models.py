@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User, AbstractUser
+from django.contrib.auth.models import User
 from PIL import Image
 from django.utils import timezone
 
@@ -13,7 +13,7 @@ class Profile(models.Model):
     is_email_verified = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.user.username} profile"
+        return f"<{self.user.username} profile>"
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -25,8 +25,11 @@ class Profile(models.Model):
             img.save(self.image.path)
 
 class VerificationToken(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    value = models.CharField(max_length = 100)
+    profile = models.OneToOneField(Profile, default=None, on_delete=models.CASCADE)
+    value = models.CharField(max_length = 64)
     created_at = models.DateTimeField(default = timezone.now)
+
+    def __str__(self):
+        return f"<{self.value}>"
 
     

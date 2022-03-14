@@ -1,29 +1,34 @@
+from pydoc import plain
 from django.shortcuts import render, redirect, HttpResponseRedirect, HttpResponse
 from .forms import UserRegisterForm, UserLoginForm
 from django.contrib import messages
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from .forms import UserUpdateForm, UpdateProfileForm
 
 from django.contrib.auth import views as auth_views, login
 from django.urls import reverse
-from .models import Profile
+from django.utils import timezone
+import hashlib
+from .models import VerificationToken
+
 
 
 # Create your views here.
 def register(request):
+    if request.user.is_authenticated:
+        return redirect("blog-home")
+
     if request.method == "POST":
         form  = UserRegisterForm(request.POST)
         if form.is_valid():
             form.save()
             email = form.cleaned_data.get("email")
-            messages.info(request, f"Your account has been created! check your verification link at {email}")
+            messages.info(request, f"Your account has been created! check your verification link in your inbox")
             return redirect("login")
     else:
         form  = UserRegisterForm()
 
-    from django.core.mail import send_mail
-    send_mail("head mail", "this is body", "business.nubcake@gmail.com", ["anggikharismaputra@gmail.com"], fail_silently=False)
-    
     return render(request, "users/register.html", {"form": form})
 
 
@@ -40,7 +45,34 @@ class CustomLoginView(auth_views.LoginView):
             messages.warning(self.request, f"Can't login yet, your account is unverified, check inbox email of {user.email}")
             return HttpResponseRedirect("")
         login(self.request, form.get_user())
-        return HttpResponseRedirect(reverse('profile'))
+        return redirect("blog-home")
+
+
+def email_verification(request, username, slug):
+    if not User.objects.filter(username=username).exists():
+        return HttpResponse("invalid url")
+    try:
+        token_object =  VerificationToken.objects.get(value=slug)
+    except VerificationToken.DoesNotExist:
+        return HttpResponse("404 (token doesnt exist)")
+
+    # check if token is not expired
+    diff = timezone.now() - token_object.created_at
+    if diff.seconds > 240: #4 minutes
+        # remove token row to save space
+        token_object.delete()
+        return HttpResponse("Your token was expired")
+
+    profile = token_object.profile
+    profile.is_email_verified = True
+    profile.save()
+
+    login(request, profile.user)
+    messages.success(request, f"Hello {profile.user.username} Welcome to our web")
+    # remove token row to save space
+    token_object.delete()
+
+    return redirect("blog-home")
 
 
 @login_required
