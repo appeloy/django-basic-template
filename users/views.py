@@ -1,8 +1,13 @@
-from django.shortcuts import render, redirect
-from .forms import UserRegisterForm
+from django.shortcuts import render, redirect, HttpResponseRedirect, HttpResponse
+from .forms import UserRegisterForm, UserLoginForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .forms import UserUpdateForm, UpdateProfileForm
+
+from django.contrib.auth import views as auth_views, login
+from django.urls import reverse
+from .models import Profile
+
 
 # Create your views here.
 def register(request):
@@ -10,12 +15,33 @@ def register(request):
         form  = UserRegisterForm(request.POST)
         if form.is_valid():
             form.save()
-            username = form.cleaned_data.get("username")
-            messages.success(request, f"Your account has been created! You are now able to log in")
+            email = form.cleaned_data.get("email")
+            messages.info(request, f"Your account has been created! check your verification link at {email}")
             return redirect("login")
     else:
         form  = UserRegisterForm()
+
+    from django.core.mail import send_mail
+    send_mail("head mail", "this is body", "business.nubcake@gmail.com", ["anggikharismaputra@gmail.com"], fail_silently=False)
+    
     return render(request, "users/register.html", {"form": form})
+
+
+
+class CustomLoginView(auth_views.LoginView):
+    template_name = "login.html"
+    authentication_form = UserLoginForm
+
+    # get execute when form is submited, after UserLoginForm.clean() executed (check django documentation)
+    def form_valid(self, form):
+        user = form.get_user()
+        # check account email verified status
+        if not user.profile.is_email_verified:
+            messages.warning(self.request, f"Can't login yet, your account is unverified, check inbox email of {user.email}")
+            return HttpResponseRedirect("")
+        login(self.request, form.get_user())
+        return HttpResponseRedirect(reverse('profile'))
+
 
 @login_required
 def profile(request):
@@ -38,5 +64,4 @@ def profile(request):
         "p_form": p_form
     }
     return render(request, "users/profile.html", context)
-
 
