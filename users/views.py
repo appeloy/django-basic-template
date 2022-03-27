@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 import hashlib
 from .models import VerificationToken
+from django.contrib.auth import authenticate
 
 
 
@@ -48,8 +49,8 @@ class CustomLoginView(auth_views.LoginView):
         return redirect("blog-home")
 
 
-def email_verification(request, username, slug):
-    if not User.objects.filter(username=username).exists():
+def email_verification(request, token_uuid, slug):
+    if not VerificationToken.objects.filter(token_uuid=token_uuid).exists():
         return HttpResponse("invalid url")
     try:
         token_object =  VerificationToken.objects.get(value=slug)

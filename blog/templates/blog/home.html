@@ -10,7 +10,11 @@
         <small class="text-muted">{{ post.date_posted | date:"F d, Y"}}</small>
       </div>
       <h2><a class="article-title" href="{% url 'post-detail' post.id %}">{{ post.title }}</a></h2>
-      <p class="article-content">{{ post.content }}</p>
+      <div class="content-wrapper">
+        <p class="article-content">{{ post.content }}</p>
+        <div class="text-center load-selector">...</div>
+      </div>
+      
     </div>
   </article>
 {% endfor %}
@@ -22,11 +26,47 @@
     {% if page_obj.number == num %}
     <a class="btn btn-info mb-4" href="?page={{num}}">{{num}}</a>
     {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3'%}
-    <a class="btn btn-outline-info mb-4" href="?page={{num}}">{{num}}</a>
+    <a class="btn btn-outline-info mb-4" href="?page={{num}}">{{num}} </a>
     {%endif%}
   {%endfor%}
   {% if page_obj.has_next%}
   <a class="btn btn-outline-info mb-4" href="?page={{page_obj.number|add:'1'}}">next</a>
   {%endif%}
 {%endif%}
+
+<script>
+  const articles = document.querySelectorAll(".content-wrapper");
+  articles.forEach(a => {
+    // console.log(a.offsetHeight)
+    if (a.offsetHeight > 400){
+      // console.log(a.childNodes)
+      const article = a.childNodes[1];
+      const content_loader = a.childNodes[3];
+      article.classList.add("wrap-content");
+      content_loader.classList.add("loader-show");
+        
+    }
+  })
+
+  // setInterval(()=>{
+  //   // console.log(document.querySelectorAll("loader-show"));
+  //   document.querySelectorAll("loader-show").forEach(l => {
+  //       console.log("all");
+  //       l.addEventListener("click", (e) => {
+  //           console.log(e.target)
+  //       })
+  //     })
+  // }, 2)
+  
+    document.querySelectorAll(".load-selector.loader-show").forEach((l) => {
+        console.log("xxx",l);
+        l.addEventListener("click", (e) => {
+            console.log(e.target)
+            e.target.parentElement.childNodes[1].style.height = "fit-content";
+            e.target.parentElement.childNodes[3].classList.remove("loader-show");
+        })
+      })
+
+
+</script>
 {%endblock%}

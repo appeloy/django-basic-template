@@ -6,7 +6,7 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from .models import Profile
 
 from django.core.exceptions import ValidationError
-from django.contrib.auth import authenticate
+
 
 class UserRegisterForm(UserCreationForm):
     email  = forms.EmailField()

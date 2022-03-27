@@ -47,6 +47,7 @@ body {
   
   .article-content {
     white-space: pre-line;
+    height: 100%;
   }
   
   .article-img {
@@ -81,4 +82,33 @@ body {
   
   .account-heading {
     font-size: 2.5rem;
+  }
+
+ 
+
+
+  /* Custom */
+
+  .content-wrapper{
+    height: auto;
+  }
+
+  .wrap-content{
+    height: 400px;
+    overflow-y: hidden;
+  }
+
+  .load-selector{
+    display: none;
+    background-color:whitesmoke;
+    border-radius: 4px;
+  }
+
+  .load-selector:hover{
+    background-color:white;
+    cursor: pointer;
+  }
+
+  .loader-show{
+    display: block;
   }
