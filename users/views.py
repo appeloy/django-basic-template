@@ -1,17 +1,20 @@
+import email
 from pydoc import plain
 from django.shortcuts import render, redirect, HttpResponseRedirect, HttpResponse
+
+from users.models import RequestPasswordUUID
 from .forms import UserRegisterForm, UserLoginForm
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from .forms import UserUpdateForm, UpdateProfileForm
+from .forms import UserUpdateForm, UpdateProfileForm, ForgetPasswordForm
 
 from django.contrib.auth import views as auth_views, login
 from django.urls import reverse
 from django.utils import timezone
-import hashlib
-from .models import VerificationToken
+
 from django.contrib.auth import authenticate
+
 
 
 
@@ -98,3 +101,31 @@ def profile(request):
     }
     return render(request, "users/profile.html", context)
 
+
+def reset_password(request):
+    if request.method == "POST":
+        f_form = ForgetPasswordForm(request.POST)
+        if f_form.is_valid():
+            # send uuid link /request-reset-password
+            print("form is valid!")
+            f_form.save()
+            return HttpResponse("send email to " + f_form.cleaned_data.get("email"))
+        else:
+            for err in f_form.errors.values():
+                messages.error(request, err)
+    f_form  = ForgetPasswordForm()
+    return render(request, "users/forget_password.html", {"form": f_form})
+
+def request_reset_password(request, uuid):
+    try:
+        request_id = RequestPasswordUUID.objects.get(value=uuid)
+    except:
+        return HttpResponse("invalid url")
+
+    diff = timezone.now() - request_id.created_at
+    if diff.seconds > 240: #4 minutes
+        # remove token row to save space
+        request_id.delete()
+        return HttpResponse("Your token was expired")
+    
+    return HttpResponse("render update password form")

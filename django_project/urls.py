@@ -27,6 +27,8 @@ urlpatterns = [
     path("logout/", auth_views.LogoutView.as_view(template_name="users/logout.html"), name="logout"),
     path("profile/", user_views.profile, name="profile"),
     path("register/", user_views.register, name="register"),
+    path("reset-password/", user_views.reset_password, name="reset-password"),
+    path("request-reset-password/<slug:uuid>/", user_views.request_reset_password),
     path("verify/<slug:token_uuid>/<slug:slug>/", user_views.email_verification, name="email-verification"),
     path("", include("blog.urls")),
 ]

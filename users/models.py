@@ -38,4 +38,9 @@ class VerificationToken(models.Model):
     def __str__(self):
         return f"<{self.value}>"
 
-    
+class RequestPasswordUUID(models.Model):
+    owner = models.OneToOneField(User, on_delete=models.CASCADE)
+    value = models.CharField(max_length=32)
+    created_at = models.DateTimeField(default = timezone.now)
+    def __str__(self):
+        return f"<{self.value}>"
