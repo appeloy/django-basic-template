@@ -7,13 +7,11 @@ from .forms import UserRegisterForm, UserLoginForm
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from .forms import UserUpdateForm, UpdateProfileForm, ForgetPasswordForm, ResetPasswordForm
+from .forms import UserUpdateForm, UpdateProfileForm, ForgetPasswordForm, ResetPasswordForm, ChangePasswordForm
 
 from django.contrib.auth import views as auth_views, login as django_login
 from django.urls import reverse
 from django.utils import timezone
-
-from django.contrib.auth import authenticate
 from .models import VerificationToken
 
 from django.contrib.auth.forms import AuthenticationForm
@@ -55,7 +53,6 @@ def register(request):
 def login(request):
     if request.user.is_authenticated:
         return redirect("profile")
-
 
     if request.method == "POST":
         form = AuthenticationForm(request,data=request.POST)
@@ -140,28 +137,41 @@ def forget_password(request):
 def request_reset_password(request, uuid):
     try:
         request_id = RequestPasswordUUID.objects.get(value=uuid)
-        request_id.delete()
     except:
         return HttpResponse("invalid url")
 
     diff = timezone.now() - request_id.created_at
     if diff.seconds > 240: #4 minutes
         # remove token row to save space
-        
+        request_id.delete()
         return HttpResponse("Your token was expired")
-    
-    django_login(request, request_id.owner)
-    return redirect("reset-password")
+    return redirect(reverse("reset-password") + "?password_id="+request_id.value)
 
-@login_required
+
 def reset_password(request):
+    if request.user.is_authenticated:
+        return redirect("change-password")
     if request.method == "POST":
         r_form  = ResetPasswordForm(request.POST, request=request)
         if r_form.is_valid():
             r_form.save();
-            print("from is save")
+            return redirect("blog-home")
         else:
             for err in r_form.errors.values():
                 messages.error(request, err)
     r_form = ResetPasswordForm(request=request)
     return render(request, "users/forget_password.html", {"form": r_form})
+
+@login_required
+def change_password(request):
+    if request.method == "POST":
+        form  = ChangePasswordForm(request.POST, request=request)
+        if form.is_valid():
+            form.save();
+            return redirect("blog-home")
+        else:
+            for err in form.errors.values():
+                messages.error(request, err)
+    form = ChangePasswordForm(request=request)
+    return render(request, "users/forget_password.html", {"form": form})
+    

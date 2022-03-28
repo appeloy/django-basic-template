@@ -28,6 +28,7 @@ urlpatterns = [
     path("profile/", user_views.profile, name="profile"),
     path("register/", user_views.register, name="register"),
     path("forget-password/", user_views.forget_password, name="forget-password"),
+    path("change-password/", user_views.change_password,name="change-password"),
     path("request-reset-password/<slug:uuid>/", user_views.request_reset_password, name="request-reset-password"),
     path("reset-password/", user_views.reset_password, name="reset-password"),
     path("verify/<slug:token_uuid>/<slug:slug>/", user_views.email_verification, name="email-verification"),

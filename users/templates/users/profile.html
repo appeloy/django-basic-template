@@ -7,6 +7,7 @@
           <div class="media-body">
             <h2 class="account-heading">{{user.username}}</h2>
             <p class="text-secondary">{{user.email}}</p>
+            <a href="{% url 'change-password'%}" class="ml-0">Change Password</a>
           </div>
         </div>
         <!-- FORM HERE -->
@@ -20,6 +21,7 @@
           <div class="form-group">
               <button class="btn btn-outline-info" type="submit">Update</button>
           </div>
+         
       </form>
       </div>
 {%endblock%}

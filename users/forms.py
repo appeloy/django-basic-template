@@ -1,5 +1,6 @@
-import email
+from django.utils import timezone
 from django import forms
+from django.contrib.auth import login as django_login
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
@@ -38,8 +39,6 @@ class UserLoginForm(AuthenticationForm):
     pass
     
         
-
-
 class UserUpdateForm(forms.ModelForm):
     # email = forms.EmailField()
 
@@ -87,6 +86,50 @@ class ResetPasswordForm(forms.Form):
 
     def clean(self):
         super().clean()
+        password_id = self.request.GET.get("password_id")
+        try:
+            self.__pass_uuid = RequestPasswordUUID.objects.get(value=password_id)
+            diff = timezone.now() - self.__pass_uuid.created_at
+            if diff.seconds > 240: #4 minutes
+                # remove tid row row to save space
+                self.__pass_uuid.delete()
+                raise ValidationError("Your token id was expired")
+
+        except RequestPasswordUUID.DoesNotExist:
+            raise ValidationError("Invalid Token, request password reset again")
+       
+
+        self.__user = self.__pass_uuid.owner
+
+        password1 = self.cleaned_data.get("new_password")
+        password2 = self.cleaned_data.get("confirm_password")
+        if password1 != password2:
+            raise ValidationError("Password isn't match")
+        if self.__user.check_password(password1):
+            raise ValidationError("New password cannot same as old password")
+        return self.cleaned_data
+    
+    def save(self):
+        self.__user.set_password(self.cleaned_data.get("new_password"))
+        self.__user.save()
+        self.__pass_uuid.delete()
+        django_login(self.request, self.__user)
+
+
+
+class ChangePasswordForm(forms.Form):
+    current_password = forms.CharField(widget=forms.PasswordInput())
+    new_password = forms.CharField(widget=forms.PasswordInput())
+    confirm_password = forms.CharField(widget=forms.PasswordInput())
+    
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop("request")
+        super(ChangePasswordForm, self).__init__(*args, **kwargs)
+
+    def clean(self):
+        if not self.request.user.check_password(self.cleaned_data.get("current_password")):
+            raise ValidationError("Wrong Password")
+        
         password1 = self.cleaned_data.get("new_password")
         password2 = self.cleaned_data.get("confirm_password")
         if password1 != password2:
@@ -94,14 +137,13 @@ class ResetPasswordForm(forms.Form):
         if self.request.user.check_password(password1):
             raise ValidationError("New password cannot same as old password")
         return self.cleaned_data
-    
+
     def save(self):
-        user = self.request.user
-        if user:
-            user.set_password(self.cleaned_data.get("new_password"))
-            user.save();
+        self.request.user.set_password(self.cleaned_data.get("new_password"))
+        self.request.user.save()
+        django_login(self.request, self.request.user)
 
 
 
-    
+
      
