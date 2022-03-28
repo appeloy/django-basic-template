@@ -7,15 +7,16 @@ from .forms import UserRegisterForm, UserLoginForm
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from .forms import UserUpdateForm, UpdateProfileForm, ForgetPasswordForm
+from .forms import UserUpdateForm, UpdateProfileForm, ForgetPasswordForm, ResetPasswordForm
 
-from django.contrib.auth import views as auth_views, login
+from django.contrib.auth import views as auth_views, login as django_login
 from django.urls import reverse
 from django.utils import timezone
 
 from django.contrib.auth import authenticate
+from .models import VerificationToken
 
-
+from django.contrib.auth.forms import AuthenticationForm
 
 
 # Create your views here.
@@ -37,19 +38,39 @@ def register(request):
 
 
 
-class CustomLoginView(auth_views.LoginView):
-    template_name = "login.html"
-    authentication_form = UserLoginForm
+# class CustomLoginView(auth_views.LoginView):
+#     template_name = "login.html"
+#     authentication_form = UserLoginForm
 
-    # get execute when form is submited, after UserLoginForm.clean() executed (check django documentation)
-    def form_valid(self, form):
-        user = form.get_user()
-        # check account email verified status
-        if not user.profile.is_email_verified:
-            messages.warning(self.request, f"Can't login yet, your account is unverified, check inbox email of {user.email}")
-            return HttpResponseRedirect("")
-        login(self.request, form.get_user())
-        return redirect("blog-home")
+#     # get execute when form is submited, after UserLoginForm.clean() executed (check django documentation)
+#     def form_valid(self, form):
+#         user = form.get_user()
+#         # check account email verified status
+#         if not user.profile.is_email_verified:
+#             messages.warning(self.request, f"Can't login yet, your account is unverified, check inbox email of {user.email}")
+#             return HttpResponseRedirect("")
+#         login(self.request, form.get_user())
+#         return redirect("blog-home")
+
+def login(request):
+    if request.user.is_authenticated:
+        return redirect("profile")
+
+
+    if request.method == "POST":
+        form = AuthenticationForm(request,data=request.POST)
+        if form.is_valid():
+            user = form.get_user();
+            if not user.is_staff and not user.profile.is_email_verified:
+                messages.warning(request, f"Can't login yet, your account is unverified, check inbox email of {user.email}")
+                return redirect("login")
+            django_login(request, form.get_user())
+            return redirect("blog-home")
+        else:
+            for err in form.errors.values():
+                messages.error(request, err)
+    form = AuthenticationForm()
+    return render(request, "users/login.html", {"form": form})
 
 
 def email_verification(request, token_uuid, slug):
@@ -71,7 +92,7 @@ def email_verification(request, token_uuid, slug):
     profile.is_email_verified = True
     profile.save()
 
-    login(request, profile.user)
+    django_login(request, profile.user)
     messages.success(request, f"Hello {profile.user.username} Welcome to our web")
     # remove token row to save space
     token_object.delete()
@@ -102,7 +123,7 @@ def profile(request):
     return render(request, "users/profile.html", context)
 
 
-def reset_password(request):
+def forget_password(request):
     if request.method == "POST":
         f_form = ForgetPasswordForm(request.POST)
         if f_form.is_valid():
@@ -119,13 +140,28 @@ def reset_password(request):
 def request_reset_password(request, uuid):
     try:
         request_id = RequestPasswordUUID.objects.get(value=uuid)
+        request_id.delete()
     except:
         return HttpResponse("invalid url")
 
     diff = timezone.now() - request_id.created_at
     if diff.seconds > 240: #4 minutes
         # remove token row to save space
-        request_id.delete()
+        
         return HttpResponse("Your token was expired")
     
-    return HttpResponse("render update password form")
+    django_login(request, request_id.owner)
+    return redirect("reset-password")
+
+@login_required
+def reset_password(request):
+    if request.method == "POST":
+        r_form  = ResetPasswordForm(request.POST, request=request)
+        if r_form.is_valid():
+            r_form.save();
+            print("from is save")
+        else:
+            for err in r_form.errors.values():
+                messages.error(request, err)
+    r_form = ResetPasswordForm(request=request)
+    return render(request, "users/forget_password.html", {"form": r_form})
