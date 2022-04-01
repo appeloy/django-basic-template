@@ -2,7 +2,7 @@ from django.utils import timezone
 from django import forms
 from django.contrib.auth import login as django_login
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordResetForm
 from django.contrib import messages
 # from django.forms import fields
 from .models import Profile
@@ -14,6 +14,7 @@ import uuid
 from .models import RequestPasswordUUID, VerificationToken
 
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
 
 class UserRegisterForm(UserCreationForm):
     email  = forms.EmailField()
@@ -42,6 +43,7 @@ class UserLoginForm(AuthenticationForm):
 class UserUpdateForm(forms.ModelForm):
     # email = forms.EmailField()
 
+
     class Meta:
         model = User
         # fields = ["username", "email"]
@@ -52,8 +54,12 @@ class UpdateProfileForm(forms.ModelForm):
         model = Profile
         fields  = ["image"]
 
-class ForgetPasswordForm(forms.Form):
-    email = forms.EmailField(label="Enter your email", required=True)
+class ForgetPasswordForm(forms.ModelForm):
+    # email = forms.EmailField(label="Enter your email", required=True)
+
+    class Meta:
+        model =  User
+        fields = ["email"]
 
     def clean(self):
         super().clean()
@@ -64,8 +70,8 @@ class ForgetPasswordForm(forms.Form):
             raise ValidationError(f"user with email {email} is not exist")
         try:
             self.__request_p = RequestPasswordUUID.objects.create(owner=user,value=uuid.uuid4().hex)
-        except IntegrityError:
-            raise ValidationError(f"You have request reset password")
+        except IntegrityError as e:
+            raise ValidationError(f"You have request reset password :")
         return self.cleaned_data
 
     def is_valid(self):
@@ -73,9 +79,10 @@ class ForgetPasswordForm(forms.Form):
 
     def save(self):
         self.__request_p.save()
-        send_email_verification_link("Click link bellow to reset your password", self.__request_p.owner.email, f"http://localhost:8000/request-reset-password/{self.__request_p.value}/")
+        send_email_verification_link(self.__request_p.owner.username, self.__request_p.owner.email, "Click link bellow to reset your password", f"http://localhost:8000/user/request-reset-password/{self.__request_p.value}/", "RESET PASSWORD")
 
 
+ 
 class ResetPasswordForm(forms.Form):
     new_password = forms.CharField(widget=forms.PasswordInput())
     confirm_password = forms.CharField(widget=forms.PasswordInput())
@@ -107,6 +114,9 @@ class ResetPasswordForm(forms.Form):
             raise ValidationError("Password isn't match")
         if self.__user.check_password(password1):
             raise ValidationError("New password cannot same as old password")
+        
+        validate_password(password1)
+
         return self.cleaned_data
     
     def save(self):
@@ -136,6 +146,8 @@ class ChangePasswordForm(forms.Form):
             raise ValidationError("Password isn't match")
         if self.request.user.check_password(password1):
             raise ValidationError("New password cannot same as old password")
+
+        validate_password(password1)
         return self.cleaned_data
 
     def save(self):

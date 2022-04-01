@@ -131,7 +131,11 @@ def forget_password(request):
         else:
             for err in f_form.errors.values():
                 messages.error(request, err)
-    f_form  = ForgetPasswordForm()
+    
+    instance = None
+    if request.user.is_authenticated:
+        instance = request.user
+    f_form  = ForgetPasswordForm(instance=instance)
     return render(request, "users/forget_password.html", {"form": f_form})
 
 def request_reset_password(request, uuid):
@@ -149,12 +153,13 @@ def request_reset_password(request, uuid):
 
 
 def reset_password(request):
-    if request.user.is_authenticated:
-        return redirect("change-password")
+    # if request.user.is_authenticated:
+    #     return redirect("change-password")
     if request.method == "POST":
         r_form  = ResetPasswordForm(request.POST, request=request)
         if r_form.is_valid():
             r_form.save();
+            messages.success(request,"Your password has been reset")
             return redirect("blog-home")
         else:
             for err in r_form.errors.values():

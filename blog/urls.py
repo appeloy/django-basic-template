@@ -17,10 +17,9 @@ from . import views
 #using view function
 urlpatterns = [
     path("", views.home, name="blog-home"),
-    path("about/", views.about, name="blog-about"),
-    path("post/<int:post_id>", views.post, name="post-detail"),
-    path("post/new", views.post_create, name="post-create"),
-    path("post/<int:post_id>/update", views.post_update, name="post-update"),
-    path("post/<int:post_id>/delete", views.post_delete, name="post-delete")
+    path("<int:post_id>/", views.post, name="post-detail"),
+    path("new/", views.post_create, name="post-create"),
+    path("<int:post_id>/update/", views.post_update, name="post-update"),
+    path("<int:post_id>/delete/", views.post_delete, name="post-delete")
 ]
 

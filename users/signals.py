@@ -16,7 +16,7 @@ def create_profile(sender, instance, created, **kwargs):
         token = token_generator(25)
         token_uuid = uuid4().hex
         VerificationToken.objects.create(profile=profile, value=token, token_uuid=token_uuid)
-        send_email_verification_link(instance.username, instance.email, f"http://localhost:8000/verify/{token_uuid}/{token}")
+        send_email_verification_link(instance.username, instance.email, "Please verify your account", f"http://localhost:8000/user/verify/{token_uuid}/{token}", "VERIFY MY ACCOUNT")
 
 @receiver(post_save, sender=User)
 def save_profile(sender, instance, **kwargs):

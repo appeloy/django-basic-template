@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <style type="text/css">
+        .wrapper{
+            display: table;
+            table-layout: fixed;
+            margin: auto;
+            padding: 20px;
+
+        }
+        a{
+            background-color: rgb(149, 185, 197);
+            padding: 10px;
+            border-radius: 15px;
+            color: white;
+            font-size: bold;
+            text-decoration: none;
+            display: flex;
+            justify-content: center;
+            width: fit-content;
+            margin: auto;
+        }
+
+        p{
+            font-size: medium;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <h3>Django Blog</h3>
+        <p>Hi {{username}},</p>
+        <p>{{message}}</p>
+        <a href={{link}}>{{link_name}}</a>
+    </div>
+    
+</body>
+</html>

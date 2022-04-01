@@ -1,6 +1,6 @@
 from ast import Try
 from django.http import request
-from django.shortcuts import render, HttpResponse, redirect
+from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from .models import Post
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib import messages
@@ -17,19 +17,13 @@ def home(request):
         "posts": Post.objects.all().order_by("-date_posted")
     }
     return render(request, 'blog/home.html', context)
-      
-def about(request):
-    return render(request, 'blog/about.html', {"title": "About"})
 
 @login_required
 def post(request, post_id):
-    try:
-        context = {
-        "object": Post.objects.get(id=post_id)
-    }
-    except Post.DoesNotExist:
-        return HttpResponse("404 Page")
-    
+    o = get_object_or_404(Post, pk=post_id)
+    context = {
+        "object": o
+    }    
     return render(request, "blog/post_detail.html", context)
 
 @login_required
@@ -37,7 +31,7 @@ def post_create(request):
     if request.method =="POST":
         form = forms.PostCreateForm(request.POST, request=request)
         if form.is_valid():
-            f = form.save()
+            form.save()
             messages.success(request,"New post created")
             return redirect("blog-home")
     
@@ -56,10 +50,11 @@ def post_create(request):
 
 @login_required
 def post_delete(request, post_id):
-    try:
-        o = Post.objects.get(id=post_id, author=request.user)
-    except:
-        return HttpResponse("Not authorized or id not found")
+    o = get_object_or_404(Post, id=post_id)
+    # try:
+    #     o = Post.objects.get(id=post_id, author=request.user)
+    # except:
+    #     return HttpResponse("Not authorized or id not found")
 
     form = forms.PostDeleteForm(instance=o)
 
@@ -75,22 +70,26 @@ def post_delete(request, post_id):
             return redirect("blog-home")
    
     else:
-        return render(request, "blog/post_confirm_delete.html",context)
+        return render(request, "blog/post_confirm_delete.html", context)
 
     return HttpResponse("post delete view")
 
 
 @login_required
 def post_update(request, post_id):
-    try:
-        o = Post.objects.get(id=post_id, author=request.user)
-    except:
-        return HttpResponse("Not authorized or id not found")
+    
+    o = get_object_or_404(Post, id=post_id)
+    
+    # try:
+    #     o = Post.objects.get(id=post_id, author=request.user)
+    # except:
+    #     return HttpResponse("Not authorized or id not found")
 
     if request.method =="POST":
         form = forms.PostUpdateForm(request.POST, instance=o)
         if form.is_valid():
             form.save()
+            messages.success(request, "Post Updated")
             return redirect("blog-home")
     
     else:
