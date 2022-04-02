@@ -1,24 +1,26 @@
-import email
-from pydoc import plain
-from django.shortcuts import render, redirect, HttpResponseRedirect, HttpResponse
+from django.shortcuts import render, redirect, HttpResponse, get_object_or_404
+from django.urls import reverse
 
 from users.models import RequestPasswordUUID
 from .forms import UserRegisterForm, UserLoginForm
+from django.contrib.auth import authenticate
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from .forms import UserUpdateForm, UpdateProfileForm, ForgetPasswordForm, ResetPasswordForm, ChangePasswordForm
 
-from django.contrib.auth import views as auth_views, login as django_login
+from django.contrib.auth import login as django_login
 from django.urls import reverse
 from django.utils import timezone
-from .models import VerificationToken
+from .models import Profile, VerificationToken
 
-from django.contrib.auth.forms import AuthenticationForm
+from .utils import token_generator, send_email_verification_link
+from django.http.response import Http404
 
 
 # Create your views here.
 def register(request):
+
     if request.user.is_authenticated:
         return redirect("blog-home")
 
@@ -26,14 +28,44 @@ def register(request):
         form  = UserRegisterForm(request.POST)
         if form.is_valid():
             form.save()
-            email = form.cleaned_data.get("email")
+            # email = form.cleaned_data.get("email")
+            username = form.cleaned_data.get("username")
+            password = form.cleaned_data.get("password1")
+
             messages.info(request, f"Your account has been created! check your verification link in your inbox")
-            return redirect("login")
+            user = authenticate(username = username, password=password)
+            vt = user.profile.verificationtoken
+    
     else:
-        form  = UserRegisterForm()
+        token_uuid  = request.GET.get("token_uuid")
+        try:
+            vt = get_object_or_404(VerificationToken, token_uuid=token_uuid)
+            vt.value = token_generator(54)
+            vt.save()
+        except Http404:
+            form =UserRegisterForm()
+            return render(request, "users/register.html", {"form": form})
+            
 
-    return render(request, "users/register.html", {"form": form})
+    ver_link = reverse("register") + "verify/" + vt.value
+    ver_link = request.build_absolute_uri(ver_link)
+    resend_link = vt.token_uuid
+    username = vt.profile.user.username
+    email = vt.profile.user.email
+    
+    
+    send_email_verification_link("Email Verification",username, email, "Please verify your account", ver_link, "VERIFY MY ACCOUNT")
+    messages.info(request, f"Resend email sucessfully")
 
+    context = {
+            "message": f"We have sent an email to <strong>{email}</strong>."
+            " Please check your inbox, and follow the instruction we provide on the email."
+            f" If you dont recieve the email, please resend the request, by clicking this link <a href=\"?token_uuid={resend_link}\">resend email</a>"
+    }
+            
+    return render(request, "users/email_confirmation.html", context)
+
+   
 
 
 # class CustomLoginView(auth_views.LoginView):
@@ -66,19 +98,16 @@ def login(request):
         else:
             for err in form.errors.values():
                 messages.error(request, err)
+
     form = UserLoginForm(request)
     return render(request, "users/login.html", {"form": form})
 
 
-def email_verification(request, token_uuid, slug):
-    if not VerificationToken.objects.filter(token_uuid=token_uuid).exists():
-        return HttpResponse("invalid url")
-    try:
-        token_object =  VerificationToken.objects.get(value=slug)
-    except VerificationToken.DoesNotExist:
-        return HttpResponse("404 (token doesnt exist)")
-
-    # check if token is not expired
+def email_verification(request,slug):
+    
+    token_object = get_object_or_404(VerificationToken, value=slug)
+    
+    # check if token is already expired
     diff = timezone.now() - token_object.created_at
     if diff.seconds > 240: #4 minutes
         # remove token row to save space

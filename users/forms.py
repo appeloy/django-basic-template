@@ -94,15 +94,25 @@ class UserLoginForm(AuthenticationForm):
     
         
 class UserUpdateForm(forms.ModelForm):
-    # email = forms.EmailField()
-
+ 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].help_text = ""
 
     class Meta:
         model = User
-        # fields = ["username", "email"]
-        fields = ["username"]
+        fields = ["username", "first_name", "last_name"]
+
+    def clean(self):
+        username = self.cleaned_data.get("username")
+
+        if "@" in username:
+            raise ValidationError("Username cannot contains '@' character")
+        return self.cleaned_data
 
 class UpdateProfileForm(forms.ModelForm):
+    image = forms.ImageField(label="Profile Picture",required=False, error_messages = {'invalid':("Image files only")}, widget=forms.FileInput)
+  
     class Meta:
         model = Profile
         fields  = ["image"]

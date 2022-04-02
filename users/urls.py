@@ -12,5 +12,5 @@ urlpatterns = [
     path("change-password/", views.change_password,name="change-password"),
     path("request-reset-password/<slug:uuid>/", views.request_reset_password, name="request-reset-password"),
     path("reset-password/", views.reset_password, name="reset-password"),
-    path("verify/<slug:token_uuid>/<slug:slug>/", views.email_verification, name="email-verification"),
+    path("register/verify/<slug:slug>/", views.email_verification, name="email-verification"),
 ]

@@ -112,3 +112,13 @@ body {
   .loader-show{
     display: block;
   }
+
+p.email-confirmation{
+    width: 100%;
+    height: fit-content;
+    overflow-wrap: break-word;
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 1px 1px #d3d3d3;
+  }
