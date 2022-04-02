@@ -1,3 +1,4 @@
+import email
 from django.utils import timezone
 from django import forms
 from django.contrib.auth import login as django_login
@@ -17,16 +18,33 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 
 class UserRegisterForm(UserCreationForm):
-    email  = forms.EmailField()
+    # email  = forms.EmailField()
 
     class Meta:
         model = User
         fields = ["username", "email", "password1", "password2"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["username"].label = ""
+        self.fields["username"].widget.attrs["placeholder"] = "Username"
+        self.fields["username"].help_text = ""
+        self.fields["email"].label = ""
+        self.fields["email"].widget.attrs["placeholder"] = "Email"
+        self.fields["password1"].label = ""
+        self.fields["password1"].widget.attrs["placeholder"] = "Password"
+        self.fields["password1"].help_text = ""
+        self.fields["password2"].label = ""
+        self.fields["password2"].widget.attrs["placeholder"] = "Password Confirmation"
+
     # Validate form input
     def clean(self):
         email = self.cleaned_data.get('email')
         username = self.cleaned_data.get("username")
+
+        if "@" in username:
+            raise ValidationError("Username cannot contains '@' character")
         
         if User.objects.filter(email=email).exists():
             raise ValidationError("email already exists")  #apparently this Validation Error pipe in into django.congtrib.message
@@ -37,7 +55,42 @@ class UserRegisterForm(UserCreationForm):
         return self.cleaned_data
 
 class UserLoginForm(AuthenticationForm):
-    pass
+    
+    def __init__(self, request=None, *args, **kwargs):
+        """
+        The 'request' parameter is set for custom auth use by subclasses.
+        The form data comes in via the standard 'data' kwarg.
+        """
+        self.request = request
+        self.user_cache = None
+        super().__init__(*args, **kwargs)
+        self.fields["username"].label = ""
+        self.fields["username"].widget.attrs["placeholder"] = "Username or email"
+        self.fields["password"].label = ""
+        self.fields["password"].widget.attrs["placeholder"] = "Password"
+        
+
+    def clean(self):
+        username = self.cleaned_data.get("username")
+        password = self.cleaned_data.get("password")
+
+        if username is not None and password:
+            if "@" in username:
+                try:
+                    user = User.objects.get(email=username)
+                    self.user_cache = authenticate(username=user.username, password=password)
+                    print("xxxx", user.email)
+                except User.DoesNotExist:
+                    raise ValidationError("Email doesn't exist")
+
+                if self.user_cache is None:
+                    raise self.get_invalid_login_error()
+                else:
+                    self.confirm_login_allowed(self.user_cache)
+            else:
+                super().clean()
+    
+        return self.cleaned_data
     
         
 class UserUpdateForm(forms.ModelForm):
@@ -79,7 +132,7 @@ class ForgetPasswordForm(forms.ModelForm):
 
     def save(self):
         self.__request_p.save()
-        send_email_verification_link(self.__request_p.owner.username, self.__request_p.owner.email, "Click link bellow to reset your password", f"http://localhost:8000/user/request-reset-password/{self.__request_p.value}/", "RESET PASSWORD")
+        send_email_verification_link("Reset Password Request",self.__request_p.owner.username, self.__request_p.owner.email, "Click link bellow to reset your password", f"http://localhost:8000/user/request-reset-password/{self.__request_p.value}/", "RESET PASSWORD")
 
 
  

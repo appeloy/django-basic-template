@@ -55,7 +55,7 @@ def login(request):
         return redirect("profile")
 
     if request.method == "POST":
-        form = AuthenticationForm(request,data=request.POST)
+        form = UserLoginForm(request,data=request.POST)
         if form.is_valid():
             user = form.get_user();
             if not user.is_staff and not user.profile.is_email_verified:
@@ -66,7 +66,7 @@ def login(request):
         else:
             for err in form.errors.values():
                 messages.error(request, err)
-    form = AuthenticationForm()
+    form = UserLoginForm(request)
     return render(request, "users/login.html", {"form": form})
 
 
@@ -136,7 +136,7 @@ def forget_password(request):
     if request.user.is_authenticated:
         instance = request.user
     f_form  = ForgetPasswordForm(instance=instance)
-    return render(request, "users/forget_password.html", {"form": f_form})
+    return render(request, "users/forget_password.html", {"form": f_form, "form_name": "Request Reset Password", "button_name": "Send Link"})
 
 def request_reset_password(request, uuid):
     try:
@@ -165,7 +165,7 @@ def reset_password(request):
             for err in r_form.errors.values():
                 messages.error(request, err)
     r_form = ResetPasswordForm(request=request)
-    return render(request, "users/forget_password.html", {"form": r_form})
+    return render(request, "users/forget_password.html", {"form": r_form, "form_name": "Reset Password", "button_name": "Reset Password"})
 
 @login_required
 def change_password(request):
@@ -178,5 +178,5 @@ def change_password(request):
             for err in form.errors.values():
                 messages.error(request, err)
     form = ChangePasswordForm(request=request)
-    return render(request, "users/forget_password.html", {"form": form})
+    return render(request, "users/forget_password.html", {"form": form, "form_name": "Change Password", "button_name": "Change Password"})
     

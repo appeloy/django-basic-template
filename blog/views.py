@@ -66,7 +66,7 @@ def post_delete(request, post_id):
         form = forms.PostDeleteForm(request.POST, instance=o)
         if form.is_valid():
             form.save()
-            messages.success(request,"Post was deleted")
+            messages.success(request,"Post deleted")
             return redirect("blog-home")
    
     else:
