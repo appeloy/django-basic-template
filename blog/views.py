@@ -8,6 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 
 from . import forms
+from django.http import JsonResponse
 
 
 # Create your views here.
@@ -101,7 +102,19 @@ def post_update(request, post_id):
             "form_button": "update",
     }
     return render(request, "blog/post_form.html", context)
-    return HttpResponse("post update view")
+
+@login_required
+def posts_api(request):
+    data = []
+    for o in Post.objects.all():
+        d = {
+            "author_pic":o.author.profile.image.url,
+            "author": o.author.username,
+            "title": o.title,
+            "content": o.content  
+        }
+        data.append(d)
+    return JsonResponse({"data": data})
 
 
 

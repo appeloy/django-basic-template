@@ -207,6 +207,7 @@ class ChangePasswordForm(forms.Form):
         password2 = self.cleaned_data.get("confirm_password")
         if password1 != password2:
             raise ValidationError("Password isn't match")
+            
         if self.request.user.check_password(password1):
             raise ValidationError("New password cannot same as old password")
 

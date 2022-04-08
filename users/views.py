@@ -1,3 +1,4 @@
+from threading import _profile_hook
 from django.shortcuts import render, redirect, HttpResponse, get_object_or_404
 from django.urls import reverse
 
@@ -6,16 +7,19 @@ from .forms import UserRegisterForm, UserLoginForm
 from django.contrib.auth import authenticate
 from django.contrib import messages
 from django.contrib.auth.models import User
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import UserUpdateForm, UpdateProfileForm, ForgetPasswordForm, ResetPasswordForm, ChangePasswordForm
 
 from django.contrib.auth import login as django_login
 from django.urls import reverse
 from django.utils import timezone
 from .models import Profile, VerificationToken
-
 from .utils import token_generator, send_email_verification_link
+
 from django.http.response import Http404
+
+from django.conf import settings
+from django.http import FileResponse
 
 
 # Create your views here.
@@ -37,6 +41,7 @@ def register(request):
             vt = user.profile.verificationtoken
     
     else:
+        # user ask resend request
         token_uuid  = request.GET.get("token_uuid")
         try:
             vt = get_object_or_404(VerificationToken, token_uuid=token_uuid)
@@ -55,10 +60,12 @@ def register(request):
     
     
     send_email_verification_link("Email Verification",username, email, "Please verify your account", ver_link, "VERIFY MY ACCOUNT")
-    messages.info(request, f"Resend email sucessfully")
+    
+    # user click resend link
+    if request.GET.get("token_uuid"): messages.info(request, f"Resend email sucessfully")
 
     context = {
-            "message": f"We have sent an email to <strong>{email}</strong>."
+            "message": f"We have sent an email to <strong>{email}</strong> for verify your account in order to get access of our blog"
             " Please check your inbox, and follow the instruction we provide on the email."
             f" If you dont recieve the email, please resend the request, by clicking this link <a href=\"?token_uuid={resend_link}\">resend email</a>"
     }
@@ -154,7 +161,6 @@ def forget_password(request):
         f_form = ForgetPasswordForm(request.POST)
         if f_form.is_valid():
             # send uuid link /request-reset-password
-            print("form is valid!")
             f_form.save()
             return HttpResponse("send email to " + f_form.cleaned_data.get("email"))
         else:
@@ -168,10 +174,8 @@ def forget_password(request):
     return render(request, "users/forget_password.html", {"form": f_form, "form_name": "Request Reset Password", "button_name": "Send Link"})
 
 def request_reset_password(request, uuid):
-    try:
-        request_id = RequestPasswordUUID.objects.get(value=uuid)
-    except:
-        return HttpResponse("invalid url")
+ 
+    request_id = get_object_or_404(RequestPasswordUUID, value=uuid)
 
     diff = timezone.now() - request_id.created_at
     if diff.seconds > 240: #4 minutes
@@ -179,7 +183,6 @@ def request_reset_password(request, uuid):
         request_id.delete()
         return HttpResponse("Your token was expired")
     return redirect(reverse("reset-password") + "?password_id="+request_id.value)
-
 
 def reset_password(request):
     # if request.user.is_authenticated:
@@ -208,4 +211,14 @@ def change_password(request):
                 messages.error(request, err)
     form = ChangePasswordForm(request=request)
     return render(request, "users/forget_password.html", {"form": form, "form_name": "Change Password", "button_name": "Change Password"})
-    
+
+
+# protect media access acording to authenticated user, cons: media file is not static
+@user_passes_test(lambda u: u.is_authenticated or u.is_staff, login_url="index-home")
+def secure_profile_media(request, path):
+    p_image = None
+    profile_object = Profile.objects.filter(image="profile_pics/" + path)
+    if profile_object.exists():
+        p_image = profile_object[0].image
+    response = FileResponse(p_image)
+    return response

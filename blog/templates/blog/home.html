@@ -18,6 +18,11 @@
     </div>
   </article>
 {% endfor %}
+
+<div class="contents">
+
+</div>
+
 {% if is_paginated %}
   {% if page_obj.has_previous%}
   <a class="btn btn-outline-info mb-4" href="?page={{page_obj.number|add:'-1'}}">previous</a>
@@ -47,7 +52,44 @@
     }
   })
 
-  
+  const renderData = async (data) => {
+    const {author_pic, author, title, content} = data;
+    const article = document.createElement("article");
+    article.classList.add("media");
+    article.classList.add("content-section");
+    article.innerHTML = `
+    <img class = "rounded-circle article-img" src="${author_pic}">
+    <div class="media-body">
+      <div class="article-metadata">
+        <a class="mr-2" href="#">${author}</a>
+        <small class="text-muted">date</small>
+      </div>
+      <h2><a class="article-title" href="">${title }</a></h2>
+      <div class="content-wrapper">
+        <p class="article-content">${content }</p>
+        <div class="text-center load-selector">...</div>
+      </div>
+    </div>
+    `
+    document.querySelector(".contents").appendChild(article)
+  }
+
+  const fetchData = async (page) => {
+      const req = await fetch("http://localhost:8000/post/api/posts");
+      const res = await req.json();
+      console.log(res);
+      // res.data.forEach(d => renderData(d));
+  }
+
+    fetchData(1);
+    window.addEventListener("scroll", ()=>{
+      const {scrollTop, scrollHeight, clientHeight} = document.documentElement;
+      console.log(scrollTop, scrollHeight, clientHeight);
+      if (scrollTop === scrollHeight - clientHeight){  //end of screen
+        console.log("end")
+      }
+    })
+
     document.querySelectorAll(".load-selector.loader-show").forEach((l) => {
         console.log("xxx",l);
         l.addEventListener("click", (e) => {
@@ -56,7 +98,6 @@
             e.target.parentElement.childNodes[3].classList.remove("loader-show");
         })
       })
-
 
 </script>
 {%endblock%}
