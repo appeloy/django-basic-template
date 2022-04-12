@@ -10,6 +10,7 @@ import threading
 
 import random
 import os
+import hashlib
 
 
 def __host_send_mail(subject, username, email_to, message, link, link_name):
@@ -19,7 +20,7 @@ def __host_send_mail(subject, username, email_to, message, link, link_name):
     at_from = os.getenv("EMAIL_HOST_USER")
     send_mail(subject, plain_message, at_from, [email_to], html_message=html_message)
 
-def send_email_verification_link(subject,username, email_to, message, link, link_name):
+def send_email_link(subject,username, email_to, message, link, link_name):
     task = threading.Thread(target=__host_send_mail, args=(subject,username, email_to, message, link, link_name))    
     task.start()
 
@@ -30,5 +31,9 @@ def token_generator(length):
         token.append(alpha[random.randint(0, len(alpha)-1)])
     return "".join(token)
 
-
+def hashes_string(*args):
+    string = ""
+    for s in args:
+        string += str(s)
+    return hashlib.sha256(string.encode()).hexdigest()
 

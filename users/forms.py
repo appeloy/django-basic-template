@@ -3,19 +3,21 @@ from django.utils import timezone
 from django import forms
 from django.contrib.auth import login as django_login
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordResetForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
 # from django.forms import fields
 from .models import Profile
 
 from django.core.exceptions import ValidationError
-from .utils import send_email_verification_link
+# from .utils import send_email_link
 from django.db.utils import IntegrityError
 import uuid
 from .models import RequestPasswordUUID, VerificationToken
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+from django.core.cache import cache
+from .utils import hashes_string, token_generator
 
 class UserRegisterForm(UserCreationForm):
     # email  = forms.EmailField()
@@ -128,23 +130,33 @@ class ForgetPasswordForm(forms.ModelForm):
         super().clean()
         email = self.cleaned_data.get('email')
         try:
-            user = User.objects.get(email=email)
+            self.__user = User.objects.get(email=email)
         except User.DoesNotExist:
             raise ValidationError(f"user with email {email} is not exist")
-        try:
-            self.__request_p = RequestPasswordUUID.objects.create(owner=user,value=uuid.uuid4().hex)
-        except IntegrityError as e:
-            raise ValidationError(f"You have request reset password :")
+        # try:
+        #     self.__request_p = RequestPasswordUUID.objects.create(owner=user,value=uuid.uuid4().hex)
+        # except IntegrityError as e:
+        #     raise ValidationError(f"You have request reset password :")
         return self.cleaned_data
 
     def is_valid(self):
         return self.is_bound and not self.errors
 
     def save(self):
-        self.__request_p.save()
-        send_email_verification_link("Reset Password Request",self.__request_p.owner.username, self.__request_p.owner.email, "Click link bellow to reset your password", f"http://localhost:8000/user/request-reset-password/{self.__request_p.value}/", "RESET PASSWORD")
 
+        self.__cache_key = hashes_string(self.__user.id, "forget-password")
+        self.__reset_id = uuid.uuid4().hex
+        cache.get_or_set(self.__cache_key, {self.__reset_id:self.__user.id}, 240)
+        # send_email_verification_link("Reset Password Request",self.__request_p.owner.username, self.__request_p.owner.email, "Click link bellow to reset your password", f"http://localhost:8000/user/request-reset-password/{self.__request_p.value}/", "RESET PASSWORD")
 
+    def get_user(self):
+        return self.__user
+
+    def get_reset_id(self):
+        return self.__reset_id
+
+    def get_reset_key(self):
+        return self.__cache_key
  
 class ResetPasswordForm(forms.Form):
     new_password = forms.CharField(widget=forms.PasswordInput())
@@ -156,20 +168,25 @@ class ResetPasswordForm(forms.Form):
 
     def clean(self):
         super().clean()
-        password_id = self.request.GET.get("password_id")
-        try:
-            self.__pass_uuid = RequestPasswordUUID.objects.get(value=password_id)
-            diff = timezone.now() - self.__pass_uuid.created_at
-            if diff.seconds > 240: #4 minutes
-                # remove tid row row to save space
-                self.__pass_uuid.delete()
-                raise ValidationError("Your token id was expired")
+        reset_key = self.request.GET.get("reset_key")
+        reset_id = self.request.GET.get("reset_id")
+        user_id  = cache.get(reset_key, {}).get(reset_id)
+        if not user_id:
+            raise ValidationError("Your key was expired, request password again")
+       
+        # try:
+        #     self.__pass_uuid = RequestPasswordUUID.objects.get(value=password_id)
+        #     diff = timezone.now() - self.__pass_uuid.created_at
+        #     if diff.seconds > 240: #4 minutes
+        #         # remove tid row row to save space
+        #         self.__pass_uuid.delete()
+        #         raise ValidationError("Your token id was expired")
 
-        except RequestPasswordUUID.DoesNotExist:
-            raise ValidationError("Invalid Token, request password reset again")
+        # except RequestPasswordUUID.DoesNotExist:
+        #     raise ValidationError("Invalid Token, request password reset again")
        
 
-        self.__user = self.__pass_uuid.owner
+        self.__user = User.objects.get(id=user_id)
 
         password1 = self.cleaned_data.get("new_password")
         password2 = self.cleaned_data.get("confirm_password")
@@ -185,7 +202,7 @@ class ResetPasswordForm(forms.Form):
     def save(self):
         self.__user.set_password(self.cleaned_data.get("new_password"))
         self.__user.save()
-        self.__pass_uuid.delete()
+        cache.delete(self.request.GET.get("reset_key"))
         django_login(self.request, self.__user)
 
 

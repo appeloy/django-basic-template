@@ -122,9 +122,18 @@ USE_L10N = True
 USE_TZ = True
 
 
+
+# Caches
+CACHES = {
+    "default":{
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "my_cache_table"
+    }
+}
+
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
-
 
 
 STATIC_URL = 'static/'
