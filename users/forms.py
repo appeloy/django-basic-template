@@ -1,4 +1,3 @@
-import email
 from django.utils import timezone
 from django import forms
 from django.contrib.auth import login as django_login
@@ -12,7 +11,7 @@ from django.core.exceptions import ValidationError
 # from .utils import send_email_link
 from django.db.utils import IntegrityError
 import uuid
-from .models import RequestPasswordUUID, VerificationToken
+
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password

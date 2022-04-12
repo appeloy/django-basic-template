@@ -1,5 +1,3 @@
-from ast import Try
-from django.http import request
 from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from .models import Post
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
@@ -7,15 +5,15 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 
+
 from . import forms
-from django.http import JsonResponse
 
 
 # Create your views here.
 @login_required
 def home(request):
     context = {
-        "posts": Post.objects.all().order_by("-date_posted")
+        # "posts": Post.objects.all().order_by("-date_posted")
     }
     return render(request, 'blog/home.html', context)
 
@@ -103,18 +101,6 @@ def post_update(request, post_id):
     }
     return render(request, "blog/post_form.html", context)
 
-@login_required
-def posts_api(request):
-    data = []
-    for o in Post.objects.all():
-        d = {
-            "author_pic":o.author.profile.image.url,
-            "author": o.author.username,
-            "title": o.title,
-            "content": o.content  
-        }
-        data.append(d)
-    return JsonResponse({"data": data})
 
 
 

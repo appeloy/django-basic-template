@@ -99,7 +99,6 @@ body {
   }
 
   .load-selector{
-    display: none;
     background-color:whitesmoke;
     border-radius: 4px;
   }
@@ -122,3 +121,4 @@ p.email-confirmation{
     border-radius: 5px;
     box-shadow: 1px 1px #d3d3d3;
   }
+

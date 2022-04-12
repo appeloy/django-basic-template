@@ -1,7 +1,7 @@
 {%extends "index/base.html"%}
-
+{%load static%}
 {%block content%}
-{% for post in posts%}
+<!-- {% for post in posts%}
 <article class="media content-section">
   <img class = "rounded-circle article-img" src="{{post.author.profile.image.url}}">
     <div class="media-body">
@@ -17,13 +17,19 @@
       
     </div>
   </article>
-{% endfor %}
+{% endfor %} -->
 
-<div class="contents">
+<div class="wrapper">
+  <div class="contents">
 
+  </div>
+  <div class="loader text-center" style="padding:10px">
+    <img src="{%static 'icons/loader.gif'%}"  width="50" alt="">
+  </div>
 </div>
 
-{% if is_paginated %}
+
+<!-- {% if is_paginated %}
   {% if page_obj.has_previous%}
   <a class="btn btn-outline-info mb-4" href="?page={{page_obj.number|add:'-1'}}">previous</a>
   {%endif%}
@@ -37,7 +43,7 @@
   {% if page_obj.has_next%}
   <a class="btn btn-outline-info mb-4" href="?page={{page_obj.number|add:'1'}}">next</a>
   {%endif%}
-{%endif%}
+{%endif%} -->
 
 <script>
   const articles = document.querySelectorAll(".content-wrapper");
@@ -53,7 +59,7 @@
   })
 
   const renderData = async (data) => {
-    const {author_pic, author, title, content} = data;
+    const {id,title, content, date_posted, author,author_pic} = data;
     const article = document.createElement("article");
     article.classList.add("media");
     article.classList.add("content-section");
@@ -61,39 +67,46 @@
     <img class = "rounded-circle article-img" src="${author_pic}">
     <div class="media-body">
       <div class="article-metadata">
-        <a class="mr-2" href="#">${author}</a>
-        <small class="text-muted">date</small>
+        <a class="mr-2" href="">${author}</a>
+        <small class="text-muted">${date_posted}</small>
       </div>
-      <h2><a class="article-title" href="">${title }</a></h2>
+      <h2><a class="article-title" href="/post/${id}">${title}</a></h2>
       <div class="content-wrapper">
-        <p class="article-content">${content }</p>
-        <div class="text-center load-selector">...</div>
+        <p class="article-content" id=article-${id}>${content }</p>
       </div>
     </div>
     `
     document.querySelector(".contents").appendChild(article)
+    
+   
+    
   }
 
+    
   const fetchData = async (page) => {
-      const req = await fetch("http://localhost:8000/post/api/posts");
+      const loader = document.querySelector(".loader")
+      loader.style.display = "block";
+      const req = await fetch("http://localhost:8000/api/posts" + "?page=" + page);
       const res = await req.json();
-      console.log(res);
-      // res.data.forEach(d => renderData(d));
-  }
+      res.data.forEach(d => renderData(d));
+      loader.style.display = "none";
+    }
 
-    fetchData(1);
+    var page = 1;
+    fetchData(page);
+
     window.addEventListener("scroll", ()=>{
       const {scrollTop, scrollHeight, clientHeight} = document.documentElement;
-      console.log(scrollTop, scrollHeight, clientHeight);
+      // console.log(scrollTop, scrollHeight, clientHeight);
       if (scrollTop === scrollHeight - clientHeight){  //end of screen
-        console.log("end")
+        console.log(page++);
+        fetchData(page)
       }
     })
 
     document.querySelectorAll(".load-selector.loader-show").forEach((l) => {
-        console.log("xxx",l);
         l.addEventListener("click", (e) => {
-            console.log(e.target)
+            // console.log(e.target)
             e.target.parentElement.childNodes[1].style.height = "fit-content";
             e.target.parentElement.childNodes[3].classList.remove("loader-show");
         })

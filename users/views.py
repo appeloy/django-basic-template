@@ -2,7 +2,6 @@
 from django.shortcuts import render, redirect, HttpResponse, get_object_or_404
 from django.urls import reverse
 
-from users.models import RequestPasswordUUID
 from .forms import UserRegisterForm, UserLoginForm
 from django.contrib.auth import authenticate
 from django.contrib import messages
@@ -12,7 +11,7 @@ from .forms import UserUpdateForm, UpdateProfileForm, ForgetPasswordForm, ResetP
 from django.contrib.auth import login as django_login
 from django.urls import reverse
 from django.utils import timezone
-from .models import Profile, VerificationToken
+from .models import Profile
 from .utils import token_generator, send_email_link
 
 from django.http import FileResponse

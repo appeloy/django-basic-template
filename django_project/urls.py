@@ -30,6 +30,7 @@ urlpatterns = [
     path("", include("index.urls")),
     path("user/", include("users.urls")),
     path("post/", include("blog.urls")),
+    path("api/", include("api.urls")),
     path("media/profile_pics/<str:path>", user_views.secure_profile_media, name="secure-profile-media")
 ]
 

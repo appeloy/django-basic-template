@@ -30,17 +30,17 @@ class Profile(models.Model):
             img.thumbnail(output_size)
             img.save(self.image.path)
 
-class VerificationToken(models.Model):
-    profile = models.OneToOneField(Profile, default=None, on_delete=models.CASCADE)
-    value = models.CharField(max_length = 64)
-    created_at = models.DateTimeField(default = timezone.now)
-    token_uuid = models.CharField(max_length=32)
-    def __str__(self):
-        return f"<{self.value}>"
+# class VerificationToken(models.Model):
+#     profile = models.OneToOneField(Profile, default=None, on_delete=models.CASCADE)
+#     value = models.CharField(max_length = 64)
+#     created_at = models.DateTimeField(default = timezone.now)
+#     token_uuid = models.CharField(max_length=32)
+#     def __str__(self):
+#         return f"<{self.value}>"
 
-class RequestPasswordUUID(models.Model):
-    owner = models.OneToOneField(User, on_delete=models.CASCADE)
-    value = models.CharField(max_length=32)
-    created_at = models.DateTimeField(default = timezone.now)
-    def __str__(self):
-        return f"<{self.value}>"
+# class RequestPasswordUUID(models.Model):
+#     owner = models.OneToOneField(User, on_delete=models.CASCADE)
+#     value = models.CharField(max_length=32)
+#     created_at = models.DateTimeField(default = timezone.now)
+#     def __str__(self):
+#         return f"<{self.value}>"
