@@ -23,8 +23,8 @@
   <div class="contents">
 
   </div>
-  <div class="loader text-center" style="padding:10px">
-    <img src="{%static 'icons/loader.gif'%}"  width="50" alt="">
+  <div class="loader text-center" style="padding:10px; height: 400px; background-color: white; padding-top: 20%;">
+    <img src="{%static 'icons/loader.gif'%}" width="50" alt="">
   </div>
 </div>
 
@@ -46,17 +46,7 @@
 {%endif%} -->
 
 <script>
-  const articles = document.querySelectorAll(".content-wrapper");
-  articles.forEach(a => {
-    // console.log(a.offsetHeight)
-    if (a.offsetHeight > 400){
-      // console.log(a.childNodes)
-      const article = a.childNodes[1];
-      const content_loader = a.childNodes[3];
-      article.classList.add("wrap-content");
-      content_loader.classList.add("loader-show");
-    }
-  })
+ 
 
   const renderData = async (data) => {
     const {id,title, content, date_posted, author,author_pic} = data;
@@ -82,35 +72,28 @@
     
   }
 
-    
-  const fetchData = async (page) => {
-      const loader = document.querySelector(".loader")
+
+  var page = 1;
+  var fetchedPages = [];
+  const loader = document.querySelector(".loader")
+  const {scrollTop, scrollHeight, clientHeight} = document.documentElement;
+
+  const loadData = async (page) => {  
       loader.style.display = "block";
-      const req = await fetch("http://localhost:8000/api/posts" + "?page=" + page);
+      const req = await fetch("/api/posts" + "?page=" + page)
       const res = await req.json();
+      if (req.status === 200) fetchedPages.push(page + 1);
       res.data.forEach(d => renderData(d));
       loader.style.display = "none";
     }
 
-    var page = 1;
-    fetchData(page);
-
+    loadData(page);
     window.addEventListener("scroll", ()=>{
-      const {scrollTop, scrollHeight, clientHeight} = document.documentElement;
-      // console.log(scrollTop, scrollHeight, clientHeight);
-      if (scrollTop === scrollHeight - clientHeight){  //end of screen
-        console.log(page++);
-        fetchData(page)
+      if (scrollTop >= scrollHeight - clientHeight - 100){  //end of screen
+          page = fetchedPages.pop();
+          if (page !== undefined) loadData(page)
       }
     })
-
-    document.querySelectorAll(".load-selector.loader-show").forEach((l) => {
-        l.addEventListener("click", (e) => {
-            // console.log(e.target)
-            e.target.parentElement.childNodes[1].style.height = "fit-content";
-            e.target.parentElement.childNodes[3].classList.remove("loader-show");
-        })
-      })
 
 </script>
 {%endblock%}

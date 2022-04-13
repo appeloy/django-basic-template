@@ -10,11 +10,14 @@ import time
 # Create your views here.
 
 @require_http_methods(["GET"])
-@login_required
 def posts(request):
-    p = Paginator(Post.objects.all().order_by("-date_posted"), 3)
-    r_page = request.GET.get("page", 1)
-    time.sleep(3)
+    p = Paginator(Post.objects.all().order_by("-date_posted"), 10)
+    
+    try:
+        r_page = int(request.GET.get("page", 1))
+    except ValueError:
+        r_page = 0;
+
     try:
         return JsonResponse(
             {"data": [PostSerializer(o).as_dict() for o in p.page(int(r_page)).object_list]
